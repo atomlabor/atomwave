@@ -1,9 +1,12 @@
-# AtomWave
+# AtomWave | Pebble Watchface
 
 Zeit im Fluss.
 Ein dynamisches, physikalisches Pixel-Art Watchface für alle Pebble Smartwatches.
 
 ![AtomWave Header](https://raw.githubusercontent.com/atomlabor/atomwave/main/AtomWave_Header.png)
+
+!!! ENG BELOW !!!
+
 
 ## Über das Projekt
 
