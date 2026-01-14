@@ -1,0 +1,49 @@
+{
+  "name": "AtomWave",
+  "author": "atomlabor",
+  "version": "1.9.0",
+  "keywords": [
+    "pebble-app"
+  ],
+  "pebble": {
+    "sdkVersion": "3",
+    "uuid": "60c05849-0e77-4933-90d5-265103440751",
+    "displayName": "AtomWave",
+    "targetPlatforms": [
+      "aplite",
+      "basalt",
+      "chalk",
+      "diaspore",
+      "emery"
+    ],
+    "capabilities": [],
+    "watchapp": {
+      "watchface": true,
+      "menuIcon": "IMAGE_MENU_ICON"
+    },
+    "messageKeys": {
+      "KEY_TEMP": 0
+    },
+    "resources": {
+      "media": [
+        {
+          "type": "font",
+          "name": "CUSTOM_FONT_42",
+          "file": "fonts/custom_font.ttf",
+          "compatibility": "2.5"
+        },
+        {
+          "type": "png",
+          "name": "IMAGE_SUBMARINE",
+          "file": "images/submarine.png"
+        },
+        {
+          "type": "png",
+          "name": "IMAGE_MENU_ICON",
+          "file": "images/AtomWave_icon.png"
+        }
+      ]
+    }
+  },
+  "dependencies": {}
+}
