@@ -70,40 +70,28 @@ static void update_time_data() {
   
   if (s_main_window) {
     GRect bounds = layer_get_bounds(window_get_root_layer(s_main_window));
-    int progress = (t->tm_hour * 60) + t->tm_min;
-    s_water_level_y = bounds.size.h - (progress * bounds.size.h / 1440);
+    s_water_level_y = bounds.size.h - (t->tm_min * bounds.size.h / 60);
     layer_mark_dirty(window_get_root_layer(s_main_window));
   }
 }
 
 static void sub_timer_callback(void *data) {
-  time_t now = time(NULL);
-  struct tm *t = localtime(&now);
-
-  if (t->tm_min % 15 == 0) {
-    GRect bounds = layer_get_bounds(window_get_root_layer(s_main_window));
-    GRect sub_bounds = gbitmap_get_bounds(s_sub_bitmap);
-    
-    int start_x = bounds.size.w;
-    int total_distance = bounds.size.w + sub_bounds.size.w;
-    
-    s_sub_x = start_x - ((t->tm_sec * total_distance) / 60);
-    
+  if (s_sub_x > -150) {
+    s_sub_x -= 3; 
     layer_mark_dirty(s_water_layer);
-    s_sub_timer = app_timer_register(1000, sub_timer_callback, NULL);
+    s_sub_timer = app_timer_register(33, sub_timer_callback, NULL);
   } else {
     s_sub_x = -200;
     s_sub_timer = NULL;
-    layer_mark_dirty(s_water_layer);
   }
 }
 
 static void anim_timer_callback(void *data) {
-  if (s_animation_frame < 45) { 
+  if (s_animation_frame < 100) { 
     s_animation_frame++;
     
     if (s_has_shooting_star) {
-      s_shooting_star_progress += 8; 
+      s_shooting_star_progress += 8;
     }
 
     GRect bounds = layer_get_bounds(s_canvas_layer);
@@ -143,15 +131,28 @@ static void trigger_animation() {
   }
 }
 
-
 static void battery_callback(BatteryChargeState state) { s_battery_state = state; update_time_data(); }
 static void tap_handler(AccelAxisType axis, int32_t direction) { trigger_animation(); }
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) { 
   update_time_data(); 
-  trigger_animation();
-  if ((tick_time->tm_min % 15 == 0) && (s_sub_timer == NULL)) {
-    sub_timer_callback(NULL);
+  
+  if (tick_time->tm_min % 15 == 0) {
+    trigger_animation();
+  }
+
+  if (s_sub_timer == NULL && (rand() % 120 == 0)) {
+    if (s_sub_bitmap) {
+       GRect bounds = layer_get_bounds(window_get_root_layer(s_main_window));
+       GRect sub_bounds = gbitmap_get_bounds(s_sub_bitmap);
+       
+       int sub_top_y = bounds.size.h - sub_bounds.size.h - 25;
+       
+       if (s_water_level_y < (sub_top_y - 5)) {
+          s_sub_x = bounds.size.w;
+          sub_timer_callback(NULL);
+       }
+    }
   }
 }
 
@@ -159,8 +160,13 @@ static void draw_text_common(GContext *ctx, Layer *layer, GColor color) {
   GRect bounds = layer_get_bounds(window_get_root_layer(s_main_window));
   GRect layer_frame = layer_get_frame(layer);
   graphics_context_set_text_color(ctx, color);
+
+  int time_h = 50; 
+  int date_h = 30; 
+  int batt_h = 24; 
+  int quote_h = 20; 
+  int spacing = 2;
   
-  int time_h = 50; int date_h = 30; int batt_h = 24; int spacing = 2;
   int total_content_height = time_h + date_h + batt_h + (spacing * 2);
   int start_y = (bounds.size.h - total_content_height) / 2;
   int offset_y = layer_frame.origin.y;
@@ -170,12 +176,22 @@ static void draw_text_common(GContext *ctx, Layer *layer, GColor color) {
   graphics_draw_text(ctx, s_time_buffer, font_time, time_rect, GTextOverflowModeFill, GTextAlignmentCenter, NULL);
   
   graphics_draw_text(ctx, s_date_buffer, s_use_font_date, GRect(0, start_y + time_h + spacing - offset_y, bounds.size.w, date_h), GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+  
   graphics_draw_text(ctx, s_batt_buffer, s_use_font_batt, GRect(0, start_y + time_h + date_h + (spacing * 2) - offset_y, bounds.size.w, batt_h), GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+
+  time_t temp = time(NULL);
+  struct tm *t = localtime(&temp);
+  
+  if (t->tm_min == 0) {
+    GFont quote_font = fonts_get_system_font(FONT_KEY_GOTHIC_14);
+    
+    GRect quote_rect = GRect(0, start_y + time_h + date_h + batt_h + (spacing * 3) - offset_y, bounds.size.w, quote_h);
+    
+    graphics_draw_text(ctx, "we all live in a ...", quote_font, quote_rect, GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+  }
 }
 
 static void air_update_proc(Layer *layer, GContext *ctx) { 
-  GRect bounds = layer_get_bounds(layer);
-  
   graphics_context_set_fill_color(ctx, COLOR_FALLBACK(GColorIcterine, GColorWhite)); 
   int safe_sky_limit = s_water_level_y - 10;
 
@@ -190,11 +206,9 @@ static void air_update_proc(Layer *layer, GContext *ctx) {
   }
 
   if (s_has_shooting_star) {
-
     int start_x = -20 + s_shooting_star_progress;
     int start_y = s_shooting_star_start_y + (s_shooting_star_progress / 3); 
     int tail_len = 25; 
-
     graphics_context_set_stroke_color(ctx, GColorWhite);
     graphics_context_set_stroke_width(ctx, 2);
     graphics_draw_line(ctx, GPoint(start_x, start_y), GPoint(start_x - tail_len, start_y - (tail_len / 3)));
@@ -211,9 +225,12 @@ static void water_update_proc(Layer *layer, GContext *ctx) {
   if (s_sub_bitmap && s_sub_x > -150) {
     GRect sub_bounds = gbitmap_get_bounds(s_sub_bitmap);
     int fixed_y_pos = root_bounds.size.h - sub_bounds.size.h - 25;
-    graphics_context_set_compositing_mode(ctx, GCompOpSet);
-    graphics_draw_bitmap_in_rect(ctx, s_sub_bitmap, GRect(s_sub_x, fixed_y_pos - offset_y, sub_bounds.size.w, sub_bounds.size.h));
-    graphics_context_set_compositing_mode(ctx, GCompOpAssign); 
+    
+    if (s_water_level_y < fixed_y_pos) {
+        graphics_context_set_compositing_mode(ctx, GCompOpSet);
+        graphics_draw_bitmap_in_rect(ctx, s_sub_bitmap, GRect(s_sub_x, fixed_y_pos - offset_y, sub_bounds.size.w, sub_bounds.size.h));
+        graphics_context_set_compositing_mode(ctx, GCompOpAssign); 
+    }
   }
 
   if (s_is_animating) { 
