@@ -1,7 +1,7 @@
 {
   "name": "AtomWave",
   "author": "atomlabor",
-  "version": "2.0.0",
+  "version": "2.2.0",
   "keywords": [
     "pebble-app"
   ],
@@ -34,13 +34,14 @@
           "compatibility": "2.5"
         },
         {
-          "type": "png",
+          "type": "bitmap",
           "name": "IMAGE_SUBMARINE",
           "file": "images/submarine.png"
         },
         {
-          "type": "png",
+          "type": "bitmap",
           "name": "IMAGE_MENU_ICON",
+          "menuIcon": true,
           "file": "images/AtomWave_icon.png"
         }
       ]

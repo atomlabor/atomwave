@@ -132,7 +132,24 @@ static void trigger_animation() {
 }
 
 static void battery_callback(BatteryChargeState state) { s_battery_state = state; update_time_data(); }
-static void tap_handler(AccelAxisType axis, int32_t direction) { trigger_animation(); }
+
+static void tap_handler(AccelAxisType axis, int32_t direction) { 
+  trigger_animation(); 
+
+  if (s_sub_timer == NULL) {
+      if (s_sub_bitmap) {
+         GRect bounds = layer_get_bounds(window_get_root_layer(s_main_window));
+         GRect sub_bounds = gbitmap_get_bounds(s_sub_bitmap);
+         
+         int sub_top_y = bounds.size.h - sub_bounds.size.h - 15;
+         
+         if (s_water_level_y < (sub_top_y - 5)) {
+            s_sub_x = bounds.size.w;
+            sub_timer_callback(NULL);
+         }
+      }
+  }
+}
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) { 
   update_time_data(); 
@@ -141,12 +158,12 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
     trigger_animation();
   }
 
-  if (s_sub_timer == NULL && (rand() % 120 == 0)) {
+  if (s_sub_timer == NULL && (rand() % 60 == 0)) {
     if (s_sub_bitmap) {
        GRect bounds = layer_get_bounds(window_get_root_layer(s_main_window));
        GRect sub_bounds = gbitmap_get_bounds(s_sub_bitmap);
        
-       int sub_top_y = bounds.size.h - sub_bounds.size.h - 25;
+       int sub_top_y = bounds.size.h - sub_bounds.size.h - 15;
        
        if (s_water_level_y < (sub_top_y - 5)) {
           s_sub_x = bounds.size.w;
@@ -160,7 +177,7 @@ static void draw_text_common(GContext *ctx, Layer *layer, GColor color) {
   GRect bounds = layer_get_bounds(window_get_root_layer(s_main_window));
   GRect layer_frame = layer_get_frame(layer);
   graphics_context_set_text_color(ctx, color);
-
+  
   int time_h = 50; 
   int date_h = 30; 
   int batt_h = 24; 
@@ -184,9 +201,7 @@ static void draw_text_common(GContext *ctx, Layer *layer, GColor color) {
   
   if (t->tm_min == 0) {
     GFont quote_font = fonts_get_system_font(FONT_KEY_GOTHIC_14);
-    
     GRect quote_rect = GRect(0, start_y + time_h + date_h + batt_h + (spacing * 3) - offset_y, bounds.size.w, quote_h);
-    
     graphics_draw_text(ctx, "we all live in a ...", quote_font, quote_rect, GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
   }
 }
@@ -224,7 +239,8 @@ static void water_update_proc(Layer *layer, GContext *ctx) {
   
   if (s_sub_bitmap && s_sub_x > -150) {
     GRect sub_bounds = gbitmap_get_bounds(s_sub_bitmap);
-    int fixed_y_pos = root_bounds.size.h - sub_bounds.size.h - 25;
+    
+    int fixed_y_pos = root_bounds.size.h - sub_bounds.size.h - 15;
     
     if (s_water_level_y < fixed_y_pos) {
         graphics_context_set_compositing_mode(ctx, GCompOpSet);
